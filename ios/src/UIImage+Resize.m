@@ -73,32 +73,27 @@
 			[NSException raise:NSInternalInconsistencyException format:@"Invalid image orientation"];  
 			
 	}  
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	// The actual resize: draw the image on a new context, applying a transform matrix
-	UIGraphicsBeginImageContextWithOptions(dstSize, NO, self.scale);
-	
-	CGContextRef context = UIGraphicsGetCurrentContext();
-    
-       if (!context) {
-           return nil;
-       }
-	
-	if (orient == UIImageOrientationRight || orient == UIImageOrientationLeft) {
-		CGContextScaleCTM(context, -scaleRatio, scaleRatio);
-		CGContextTranslateCTM(context, -srcSize.height, 0);
-	} else {  
-		CGContextScaleCTM(context, scaleRatio, -scaleRatio);
-		CGContextTranslateCTM(context, 0, -srcSize.height);
-	}
-	
-	CGContextConcatCTM(context, transform);
-	
-	// we use srcSize (and not dstSize) as the size to specify is in user space (and we use the CTM to apply a scaleRatio)
-	CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, srcSize.width, srcSize.height), imgRef);
-	UIImage* resizedImage = UIGraphicsGetImageFromCurrentImageContext();
-	UIGraphicsEndImageContext();
-	
+	UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:dstSize];
+	UIImage *resizedImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+		CGContextRef context = rendererContext.CGContext;
+
+		if (orient == UIImageOrientationRight || orient == UIImageOrientationLeft) {
+			CGContextScaleCTM(context, -scaleRatio, scaleRatio);
+			CGContextTranslateCTM(context, -srcSize.height, 0);
+		} else {
+			CGContextScaleCTM(context, scaleRatio, -scaleRatio);
+			CGContextTranslateCTM(context, 0, -srcSize.height);
+		}
+
+		CGContextConcatCTM(context, transform);
+
+		// we use srcSize (and not dstSize) as the size to specify is in user space (and we use the CTM to apply a scaleRatio)
+		CGContextDrawImage(context, CGRectMake(0, 0, srcSize.width, srcSize.height), imgRef);
+	}];
+
 	return resizedImage;
 }
 
